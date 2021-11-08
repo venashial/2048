@@ -100,34 +100,55 @@ class GameBoard {
   }
 
   List<List<int>> _rotate90(List<List<int>> array, int direction) {
-    List<List<int>> newArray = List.generate(
-        size, (i) => List.generate(size, (_) => 0),
-        growable: false);
+    for (int r = 0; r < direction.abs(); r++) {
+      array = _rotateMatrix(size, array);
+    }
 
-    for (int r = 0; r < direction; r++) {
-      for (int i = 0; i < array[0].length; i++) {
-        for (int j = array.length - 1; j >= 0; j--) {
-          newArray[i][j] = array[j][i];
-        }
+    return array;
+  }
+
+  List<List<int>> _rotateMatrix(int N, List<List<int>> mat) {
+    for (int x = 0; x < N / 2; x++) {
+      for (int y = x; y < N - x - 1; y++) {
+        int temp = mat[x][y];
+
+        mat[x][y] = mat[y][N - 1 - x]; // Move values from right to top
+        mat[y][N - 1 - x] =
+            mat[N - 1 - x][N - 1 - y]; // Move values from bottom to right
+        mat[N - 1 - x][N - 1 - y] =
+            mat[N - 1 - y][x]; // Move values from left to bottom
+
+        mat[N - 1 - y][x] = temp;
       }
     }
 
-    return newArray;
+    return mat;
   }
 
   void move(direction) {
     var directionMap = {'left': 0, 'up': 1, 'right': 2, 'down': 3};
-    var directionInt = directionMap[direction] ?? 0;
+    var directionInt = (directionMap[direction] ?? 0);
+    print(direction);
+    print(directionInt);
+    printMatrix(tiles, 'original');
     var rotatedBoard = _rotate90(tiles, directionInt);
     List<List<int>> newBoard = List.generate(
         size, (i) => List.generate(size, (_) => 0),
         growable: false);
+
     for (int i = 0; i < size; i++) {
-      newBoard[i] = _moveLeft(tiles[i]);
-      print('tiles');
-      print(tiles[i]);
-      print(newBoard[i]);
+      newBoard[i] = _moveLeft(rotatedBoard[i]);
     }
-    tiles = _rotate90(newBoard, -directionInt);
+    printMatrix(rotatedBoard, 'rotatedBoard');
+    printMatrix(newBoard, 'newBoard');
+    tiles = _rotate90(newBoard, 4 - directionInt);
+    printMatrix(tiles, 'tiles');
+  }
+}
+
+void printMatrix(List<List<int>> matrix, String title) {
+  print('\n$title');
+  for (int i = 0; i < matrix.length; i++) {
+    print(matrix[i]);
   }
 }

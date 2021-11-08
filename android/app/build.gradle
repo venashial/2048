@@ -42,7 +42,7 @@ android {
     }
 
     defaultConfig {
-=        applicationId "design.venashial.game2048"
+        applicationId "design.venashial.game2048"
         minSdkVersion 16
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()

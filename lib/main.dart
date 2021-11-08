@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:game2048/board.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -44,18 +46,71 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final _board = GameBoard(size: 4);
   int _score = 0;
+  int _bestScore = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupBestScore();
+  }
+
+  void _setupBestScore() async {
+    setState(() async {
+      _bestScore = await _getBestScore();
+    });
+  }
+
+  Future<int> _getBestScore() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    return preferences.getInt('bestScore') ?? 0;
+  }
+
+  void _setBestScore(int score) async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    preferences.setInt('bestScore', score);
+  }
 
   _MyHomePageState() {
     _score = _board.total;
   }
 
-  void _swipe(String direction) {
-    print(direction);
+  void _swipe(String direction) async {
+    HapticFeedback.heavyImpact();
+
     setState(() {
       _score = _board.total;
-      _board.move(direction);
-      _board.addRandomTile();
+      if (_score > _bestScore) {
+        _setBestScore(_score);
+        _bestScore = _score;
+      }
+      if (_board.availableTiles.isNotEmpty) {
+        _board.move(direction);
+        _board.addRandomTile();
+        if (_board.availableTiles.isEmpty) {
+          gameOver();
+        }
+      } else {
+        gameOver();
+      }
     });
+  }
+
+  void gameOver() {
+    showDialog(
+        context: context,
+        builder: (_) =>
+            AlertDialog(title: const Text('Game over!'), actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    _score = 0;
+                    _board.reset();
+                  });
+                },
+                child: const Text('Try again?'),
+              ),
+            ]));
   }
 
   @override
@@ -99,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                           ),
                           TextSpan(
-                            text: '$_score',
+                            text: '$_bestScore',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -152,9 +207,19 @@ class _MyHomePageState extends State<MyHomePage> {
                             .toColor(),
                         '128': const HSLColor.fromAHSL(1, 45, 0.77, 0.69)
                             .toColor(),
+                        '256': const HSLColor.fromAHSL(1, 46, 0.80, 0.65)
+                            .toColor(),
+                        '512': const HSLColor.fromAHSL(1, 46, 0.81, 0.62)
+                            .toColor(),
+                        '1024':
+                            const HSLColor.fromAHSL(1, 50, 1, 0.50).toColor(),
+                        '2048': const HSLColor.fromAHSL(1, 46, 0.84, 0.55)
+                            .toColor(),
+                        '4096': const HSLColor.fromAHSL(1, 48, 0.09, 0.22)
+                            .toColor(),
                       };
-                      int column = index % 4;
-                      int row = (index - column) ~/ 4;
+                      int row = index % 4;
+                      int column = (index - row) ~/ 4;
                       int value = _board.tiles[column][row];
                       Widget child = const Text('');
                       if (value != 0) {
@@ -163,15 +228,18 @@ class _MyHomePageState extends State<MyHomePage> {
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
-                            color: const HSLColor.fromAHSL(1, 30, 0.08, 0.43)
-                                .toColor(),
+                            color: value < 8
+                                ? const HSLColor.fromAHSL(1, 30, 0.08, 0.43)
+                                    .toColor()
+                                : Colors.white,
                           ),
                         );
                       }
                       return Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(5),
-                            color: tileColors[value.toString()],
+                            color: tileColors[
+                                (value > 4096 ? 4096 : value).toString()],
                           ),
                           alignment: Alignment.center,
                           padding: const EdgeInsets.all(5),
